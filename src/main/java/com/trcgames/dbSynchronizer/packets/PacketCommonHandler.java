@@ -4,7 +4,7 @@ import com.trcgames.dbSynchronizer.DatabaseGetter;
 import com.trcgames.dbSynchronizer.database.DBFolder;
 import com.trcgames.dbSynchronizer.database.Database;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 
 public class PacketCommonHandler{
 	

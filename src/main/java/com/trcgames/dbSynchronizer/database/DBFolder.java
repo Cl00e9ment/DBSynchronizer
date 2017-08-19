@@ -10,7 +10,7 @@ import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.BlockPos;
 
 public class DBFolder{
 	

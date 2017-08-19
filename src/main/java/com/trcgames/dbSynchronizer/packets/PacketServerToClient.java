@@ -61,7 +61,7 @@ public class PacketServerToClient implements IMessage{
 		@SideOnly (Side.CLIENT)
 		public IMessage onMessage (PacketServerToClient message, MessageContext ctx){
 			
-			if (Minecraft.getMinecraft().player != null && Minecraft.getMinecraft().player.getName().equals (message.clientToIgnor)){
+			if (Minecraft.getMinecraft().thePlayer != null && Minecraft.getMinecraft().thePlayer.getName().equals (message.clientToIgnor)){
 				return null;
 			}
 			
@@ -84,9 +84,9 @@ public class PacketServerToClient implements IMessage{
 					
 				case PLAYER_LOGGED_IN :
 					
-					if (Minecraft.getMinecraft().player != null){
+					if (Minecraft.getMinecraft().thePlayer != null){
 						
-						if (Minecraft.getMinecraft().player.getName().equals (message.args [0])){
+						if (Minecraft.getMinecraft().thePlayer.getName().equals (message.args [0])){
 							DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 						}
 						
@@ -108,7 +108,7 @@ public class PacketServerToClient implements IMessage{
 						@Override
 						public void run(){
 							
-							if (Minecraft.getMinecraft().player.getName().equals (playerName)){
+							if (Minecraft.getMinecraft().thePlayer.getName().equals (playerName)){
 								DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 							}
 						}

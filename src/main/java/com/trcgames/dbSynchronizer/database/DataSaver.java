@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import com.trcgames.dbSynchronizer.DBSynchronizer;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.storage.MapStorage;
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.common.DimensionManager;
 
 public class DataSaver extends WorldSavedData{
@@ -28,7 +28,7 @@ public class DataSaver extends WorldSavedData{
 		String key = DBSynchronizer.MOD_ID;
 		
 		MapStorage storage = DimensionManager.getWorlds()[0].getMapStorage();
-		instance = (DataSaver) storage.getOrLoadData (DataSaver.class, key);
+		instance = (DataSaver) storage.loadData (DataSaver.class, key);
 		
 		if (instance == null){
 			
@@ -83,7 +83,7 @@ public class DataSaver extends WorldSavedData{
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT (NBTTagCompound compound){
+	public void writeToNBT (NBTTagCompound compound){
 		
 		String modIDsStr = "";
 		
@@ -97,6 +97,5 @@ public class DataSaver extends WorldSavedData{
 		}
 		
 		compound.setString ("modIDs", modIDsStr);
-		return compound;
 	}
 }
