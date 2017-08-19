@@ -1,0 +1,16 @@
+[
+{
+  "modid": "dbsynchronizer",
+  "name": "DBSynchronizer",
+  "description": "A mod that simplifies the data saving and the data synchronization for other mods.",
+  "version": "1.5.0",
+  "mcversion": "1.12",
+  "url": "http://trcgames.com/dbsynchronizer/telechargement.php",
+  "updateUrl": "",
+  "authorList": ["TheRedColossus"],
+  "credits": "Thanks to the MinecraftForgeFrance forum guys !",
+  "logoFile": "logo.png",
+  "screenshots": [],
+  "dependencies": []
+}
+]
