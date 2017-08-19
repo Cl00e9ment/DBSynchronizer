@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import com.trcgames.dbSynchronizer.DBSynchronizer;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.storage.MapStorage;
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.common.DimensionManager;
 
 public class DataSaver extends WorldSavedData{

@@ -54,7 +54,7 @@ public class PacketClientToServer implements IMessage{
 				
 				case INITIALIZATION_REQUEST :
 					
-					EntityPlayerMP sender = ctx.getServerHandler().player;
+					EntityPlayerMP sender = ctx.getServerHandler().playerEntity;
 					DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, DataSaver.getInstance().getModIDs()), sender);
 					
 					for (String modID : DataSaver.getInstance().getModIDs()){
@@ -68,7 +68,7 @@ public class PacketClientToServer implements IMessage{
 				case ADD_MOD_ID :
 					
 					DataSaver.getInstance().addAModID (message.args [0]);
-					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ctx.getServerHandler().player, message.args[0]));
+					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ctx.getServerHandler().playerEntity, message.args[0]));
 					return null;
 					
 				case SET_REMOVE_DATA :
@@ -76,7 +76,7 @@ public class PacketClientToServer implements IMessage{
 					PacketCommonHandler.setRemoveData (message.args);
 					ServerDatabase.getInstance (message.args[0]).markDirty ();
 					
-					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().player, message.args));
+					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().playerEntity, message.args));
 					return null;
 					
 				default : return null;
