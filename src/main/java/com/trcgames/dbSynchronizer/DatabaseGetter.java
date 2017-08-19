@@ -4,8 +4,8 @@ import com.trcgames.dbSynchronizer.database.ClientDatabase;
 import com.trcgames.dbSynchronizer.database.Database;
 import com.trcgames.dbSynchronizer.database.ServerDatabase;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.relauncher.Side;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.relauncher.Side;
 
 public class DatabaseGetter{
 	

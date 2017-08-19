@@ -4,17 +4,17 @@ import com.trcgames.dbSynchronizer.database.ClientDatabase;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
+import cpw.mods.fml.common.eventhandler.EventPriority;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
 
 public class EventListener{
 	
 	/** Triggered on <u>Server thread</u>. */
-	@SubscribeEvent
+	@SubscribeEvent (priority = EventPriority.HIGHEST)
 	public void onClientJoin (PlayerLoggedInEvent event){
-		DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.PLAYER_LOGGED_IN, event.player.getName()));
+		DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.PLAYER_LOGGED_IN, event.player.getDisplayName()));
 	}
 
 	/** Triggered on thread <u>Netty Client IO</u>. */

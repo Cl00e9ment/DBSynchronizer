@@ -4,15 +4,15 @@ import com.trcgames.dbSynchronizer.DBSynchronizer;
 import com.trcgames.dbSynchronizer.database.ClientDatabase;
 import com.trcgames.dbSynchronizer.packets.PacketClientToServer.CtSPacketType;
 
+import cpw.mods.fml.common.network.ByteBufUtils;
+import cpw.mods.fml.common.network.simpleimpl.IMessage;
+import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
+import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraftforge.fml.common.network.ByteBufUtils;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class PacketServerToClient implements IMessage{
 	
@@ -33,7 +33,7 @@ public class PacketServerToClient implements IMessage{
 	public PacketServerToClient (StCPacketType type, EntityPlayerMP clientToIgnor, String... args){
 		
 		this.type = type;
-		this.clientToIgnor = clientToIgnor.getName ();
+		this.clientToIgnor = clientToIgnor.getDisplayName ();
 		this.args = args;
 	}
 	
@@ -61,7 +61,7 @@ public class PacketServerToClient implements IMessage{
 		@SideOnly (Side.CLIENT)
 		public IMessage onMessage (PacketServerToClient message, MessageContext ctx){
 			
-			if (Minecraft.getMinecraft().player != null && Minecraft.getMinecraft().player.getName().equals (message.clientToIgnor)){
+			if (Minecraft.getMinecraft().thePlayer != null && Minecraft.getMinecraft().thePlayer.getDisplayName().equals (message.clientToIgnor)){
 				return null;
 			}
 			
@@ -84,35 +84,9 @@ public class PacketServerToClient implements IMessage{
 					
 				case PLAYER_LOGGED_IN :
 					
-					if (Minecraft.getMinecraft().player != null){
-						
-						if (Minecraft.getMinecraft().player.getName().equals (message.args [0])){
-							DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
-						}
-						
-						return null;
+					if (Minecraft.getMinecraft().thePlayer.getDisplayName().equals (message.args [0])){
+						DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 					}
-					
-					//When Client thread will receives the task, Minecraft.getMinecraft.player will be initialized.
-					//But now, it's not.
-					Minecraft.getMinecraft().addScheduledTask (new Runnable(){
-						
-						private String playerName;
-						
-						public Runnable setPlayerName (String playerName){
-							
-							this.playerName = playerName;
-							return this;
-						}
-						
-						@Override
-						public void run(){
-							
-							if (Minecraft.getMinecraft().player.getName().equals (playerName)){
-								DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
-							}
-						}
-					}.setPlayerName (message.args [0]));
 					
 					return null;
 					

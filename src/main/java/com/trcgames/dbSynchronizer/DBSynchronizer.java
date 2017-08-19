@@ -6,16 +6,16 @@ import com.trcgames.dbSynchronizer.packets.PacketClientToServer;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.Mod.Instance;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.relauncher.Side;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Mod;
+import cpw.mods.fml.common.Mod.EventHandler;
+import cpw.mods.fml.common.Mod.Instance;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppingEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.relauncher.Side;
 
 @Mod (modid = DBSynchronizer.MOD_ID, version = DBSynchronizer.VERSION)
 public class DBSynchronizer{
@@ -24,14 +24,14 @@ public class DBSynchronizer{
 	public static DBSynchronizer instance;
 	
 	public static final String MOD_ID = "dbsynchronizer";
-	public static final String VERSION = "1.5.0";
+	public static final String VERSION = "1.0.0";
 	public static SimpleNetworkWrapper network;
 	public static boolean worldLoaded;
 	
 	@EventHandler
 	public void preInit (FMLPreInitializationEvent event){
 		
-		MinecraftForge.EVENT_BUS.register (new EventListener ());
+		FMLCommonHandler.instance().bus().register (new EventListener ());
 		
 		network = NetworkRegistry.INSTANCE.newSimpleChannel (DBSynchronizer.MOD_ID);
 		network.registerMessage (PacketServerToClient.Handler.class, PacketServerToClient.class, 0, Side.CLIENT);

@@ -7,8 +7,8 @@ import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.storage.MapStorage;
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.common.DimensionManager;
 
 public class ServerDatabase extends WorldSavedData implements Database{
@@ -23,8 +23,8 @@ public class ServerDatabase extends WorldSavedData implements Database{
 		
 		String key = DBSynchronizer.MOD_ID +'-'+ modID;
 		
-		MapStorage storage = DimensionManager.getWorlds()[0].getMapStorage();
-		ServerDatabase instance = (ServerDatabase) storage.getOrLoadData (ServerDatabase.class, key);
+		MapStorage storage = DimensionManager.getWorlds()[0].mapStorage;
+		ServerDatabase instance = (ServerDatabase) storage.loadData (ServerDatabase.class, key);
 		
 		if (instance == null){
 			
@@ -105,12 +105,10 @@ public class ServerDatabase extends WorldSavedData implements Database{
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT (NBTTagCompound compound){
+	public void writeToNBT (NBTTagCompound compound){
 		
 		NBTTagCompound folderTag = new NBTTagCompound ();
 		persistentFolder.saveInNBT (folderTag);
 		compound.setTag ("persistent folder", folderTag);
-		
-		return compound;
 	}
 }

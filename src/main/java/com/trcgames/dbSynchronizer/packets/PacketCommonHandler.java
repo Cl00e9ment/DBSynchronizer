@@ -3,8 +3,7 @@ package com.trcgames.dbSynchronizer.packets;
 import com.trcgames.dbSynchronizer.DatabaseGetter;
 import com.trcgames.dbSynchronizer.database.DBFolder;
 import com.trcgames.dbSynchronizer.database.Database;
-
-import net.minecraft.util.math.BlockPos;
+import com.trcgames.dbSynchronizer.util.BlockPos;
 
 public class PacketCommonHandler{
 	
