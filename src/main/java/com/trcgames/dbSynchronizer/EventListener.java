@@ -20,6 +20,8 @@ public class EventListener{
 	/** Triggered on thread <u>Netty Client IO</u>. */
 	@SubscribeEvent (priority = EventPriority.LOW)
 	public void onClientLeave (ClientDisconnectionFromServerEvent event){
+		
+		DBSynchronizer.worldLoaded = false;
 		ClientDatabase.onClientLeave ();
 	}
 }
