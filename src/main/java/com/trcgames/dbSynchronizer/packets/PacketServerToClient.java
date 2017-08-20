@@ -16,7 +16,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 
 public class PacketServerToClient implements IMessage{
 	
-	public enum StCPacketType {UPDATE_WORLD_LOADING_STATE, ADD_MOD_IDS, PLAYER_LOGGED_IN, SET_REMOVE_DATA};
+	public enum StCPacketType {ADD_MOD_IDS, PLAYER_LOGGED_IN, SET_REMOVE_DATA};
 	
 	private StCPacketType type;
 	private String clientToIgnor = "";
@@ -67,13 +67,6 @@ public class PacketServerToClient implements IMessage{
 			
 			switch (message.type){
 				
-				case UPDATE_WORLD_LOADING_STATE :
-					
-					if (message.args[0].equals ("start")) DBSynchronizer.worldLoaded = true;
-					else if (message.args[0].equals ("stop")) DBSynchronizer.worldLoaded = false;
-					
-					return null;
-				
 				case ADD_MOD_IDS :
 					
 					for (String modID : message.args){
@@ -85,6 +78,8 @@ public class PacketServerToClient implements IMessage{
 				case PLAYER_LOGGED_IN :
 					
 					if (Minecraft.getMinecraft().thePlayer.getDisplayName().equals (message.args [0])){
+						
+						DBSynchronizer.worldLoaded = true;
 						DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 					}
 					
