@@ -35,8 +35,6 @@ public class ServerDatabase extends WorldSavedData implements Database{
 			
 			instance.setModID (modID);
 			instance.createThePersistentFolder ();
-			
-			//TODO maybe it's useless
 			instance.markDirty ();
 			
 		}else instance.setModID (modID);
