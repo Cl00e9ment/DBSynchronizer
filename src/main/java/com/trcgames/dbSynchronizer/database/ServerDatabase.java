@@ -33,11 +33,9 @@ public class ServerDatabase extends WorldSavedData implements Database{
 			instance = new ServerDatabase (key);
 			storage.setData (key, instance);
 			
-			instance.setModID (modID);
 			instance.createThePersistentFolder ();
 			instance.markDirty ();
-			
-		}else instance.setModID (modID);
+		}
 		
 		instances.add (instance);
 		return instance;
@@ -65,6 +63,15 @@ public class ServerDatabase extends WorldSavedData implements Database{
 		return initInstance (modID);
 	}
 	
+	public static boolean doesInstanceStored (String modID){
+		
+		for (ServerDatabase instance : instances){
+			if (instance.modID.equals (modID)) return true;
+		}
+		
+		return false;
+	}
+	
 	//---------------------------------
 	// OBJECT
 	//---------------------------------
@@ -73,12 +80,10 @@ public class ServerDatabase extends WorldSavedData implements Database{
 	private DBFolder persistentFolder, nonPersistentFolder;
 	
 	public ServerDatabase (String key){
-		super (key);
-	}
-	
-	private void setModID (String modID){
 		
-		this.modID = modID;
+		super (key);
+		
+		modID = key.substring (DBSynchronizer.MOD_ID.length()+1);
 		nonPersistentFolder = new DBFolder (modID, "non-persistent folder", null, null);
 	}
 	
@@ -98,7 +103,6 @@ public class ServerDatabase extends WorldSavedData implements Database{
 	
 	@Override
 	public void readFromNBT (NBTTagCompound compound){
-		
 		persistentFolder = new DBFolder (modID, "persistent folder", null, compound.getCompoundTag ("persistent folder"));
 	}
 	

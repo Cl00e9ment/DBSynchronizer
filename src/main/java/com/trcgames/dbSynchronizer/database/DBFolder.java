@@ -4,6 +4,9 @@ import java.util.ArrayList;
 
 import com.trcgames.dbSynchronizer.DBSynchronizer;
 import com.trcgames.dbSynchronizer.DatabaseGetter;
+import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.AccessController;
+import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.ClientAccessController;
+import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.ServerAccessController;
 import com.trcgames.dbSynchronizer.packets.PacketClientToServer;
 import com.trcgames.dbSynchronizer.packets.PacketClientToServer.CtSPacketType;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
@@ -11,6 +14,8 @@ import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 
 public class DBFolder{
 	
@@ -20,13 +25,16 @@ public class DBFolder{
 	private String modID;
 	private String name;
 	
+	private Side side;
+	protected AccessController accessController;
+	
 	// for modders
 	public DBFolder (){}
 	
-	// for ServerDatabase & initFromNBT()
+	// for library usages
 	protected DBFolder (String modID, String name, DBFolder parentFolder, NBTTagCompound tag){
 		
-		this.modID = modID;
+		setModID (modID);
 		this.name = name;
 		this.parentFolder = parentFolder;
 		if (tag != null) initFromNBT (tag);
@@ -35,12 +43,48 @@ public class DBFolder{
 	private void setModID (String modID){
 		
 		this.modID = modID;
+		side = FMLCommonHandler.instance().getEffectiveSide();
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.setModID (modID);
+		}
+		
+		if (modID == null) accessController = null;
+		else if (side == Side.SERVER) accessController = new ServerAccessController (this);
+		else if (side == Side.CLIENT) accessController = new ClientAccessController (this);
+	}
+	
+	/** @return The ID of the mod that possesses the database instance where this DBFolder is contained. Or null if this DBFolder aren't contained in a database instance. */
+	public String getModID (){
+		return modID;
+	}
+	
+	/** Retrieves an ArrayList that contains all DBFolder directly contained in this DBFolder.*/
+	public ArrayList<DBFolder> getSubFolders (){
+		
+		ArrayList<DBFolder> subFolders = new ArrayList<DBFolder>();
 		
 		for (Object data : dataArray){
+			
 			if (data instanceof DBFolder){
-				((DBFolder) data).setModID (modID);
+				subFolders.add((DBFolder) data);
 			}
 		}
+		
+		return subFolders;
+	}
+	
+	/** Retrieves <b>true</b> if this DBFolder contains another DBFolder with the specified key, <b>false</b> either.*/
+	public boolean doesSubFolderExist (String key){
+		
+		for (Object data : dataArray){
+			
+			if (data instanceof DBFolder && ((DBFolder) data).getName().equals (key)){
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	private void synchronizeContent (){
@@ -76,7 +120,6 @@ public class DBFolder{
 		
 		if (modID == null) return;
 		
-		Database database = DatabaseGetter.getInstance (modID);
 		String [] hierarchy = getHierarchy();
 		String [] args = new String [hierarchy.length+5];
 		
@@ -87,23 +130,29 @@ public class DBFolder{
 		args [args.length-2] = key;
 		args [args.length-1] = value;
 		
-		if (database instanceof ServerDatabase){
+		if (side == Side.SERVER){
 			
 			if (args [1].equals ("persistent folder")){
-				((ServerDatabase) database).markDirty ();
+				((ServerDatabase) DatabaseGetter.getInstance (modID)).markDirty ();
 			}
 			
 			DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, args));
 			
-		}else if (database instanceof ClientDatabase){
+		}else if (side == Side.CLIENT){
 			DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.SET_REMOVE_DATA, args));
 		}
 	}
 	
+	// TODO javadoc
 	public String [] getHierarchy (){
-		return getHierarchy (null);
+		
+		String [] hierarchy = getHierarchy (null);
+		return hierarchy;
+		
+		//return getHierarchy (null);
 	}
 	
+	/** recursive method */
 	private String [] getHierarchy (String hierarchy){
 		
 		if (hierarchy == null) hierarchy = name;
@@ -284,118 +333,277 @@ public class DBFolder{
 	}
 	
 	//---------------------------------
-	// GETTERS & SETTERS
+	// ACCESS CONTROL
 	//---------------------------------
 	
-	/**Stores the given BlockPos object using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * @throws NullPointerException If value is null. Use <u>removeBlockPos (String key)</u> for remove a BlockPos.
-	 * */
-	public void setBlockPos (String key, BlockPos value){
-		
-		if (value == null) throw new NullPointerException ("value can't be null");
-		setData (key, value, value.getX()+":"+value.getY()+":"+value.getZ(), true);
+	/**<span style="font-size : 2em">DON'T USE THIS METHOD !</span><br>
+	 * it can desynchronize the clients/server
+	 */
+	public AccessController getAccessController (){
+		return accessController;
 	}
 	
-	/**Stores the given boolean value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setBoolean (String key, boolean value){
-		setData (key, new Boolean (value), value+"", true);
+	/** @return <b>true</b> if you can modify data inside this DBFolder (if you are on the server side or if the server has allowed you), <b>false</b> either. */
+	public boolean canModifyDataInside (){
+		return accessController.canAccessToData();
 	}
 	
-	/**Stores the given byte value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setByte (String key, byte value){
-		setData (key, new Byte (value), value+"", true);
-	}
+	// Server side only :
 	
-	/**Stores the given char value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setChar (String key, char value){
-		setData (key, new Character (value), value+"", true);
-	}
-	
-	/**Stores the given DBFolder object using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * @throws NullPointerException If value is null. Use <u>removeDBFolder (String key)</u> for remove a DBFolder.
-	 * */
-	public void setDBFolder (String key, DBFolder value){
+	/**
+	 * Allows all players to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @throws IllegalAccessException If you use this method on the client side.
+	 */
+	public void allowAccessToAll () throws IllegalAccessException{
 		
-		if (value == null) throw new NullPointerException ("value can't be null");
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
 		
-		value.parentFolder = this;
-		value.setModID (modID);
-		value.name = key;
+		((ServerAccessController) accessController).allowAccessToAll();
 		
-		setData (key, value, "", true);
-		
-		value.synchronizeContent ();
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.allowAccessToAll();
+		}
 	}
 	
 	/**
-	 * <span style="font-size : 2em">DON'T USE THIS METHOD !</span></br>
-	 * it can desynchronize the clients/server or corrupt the save
+	 * Allows a player to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @param playerName Name of the allowed player.
+	 * @throws IllegalAccessException If you use this method on the client side.
 	 */
-	public void addNewDBFolderFromPacket (String key){
-		setData (key, new DBFolder (modID, key, this, null), "", false);
+	public void allowAccessTo (String playerName) throws IllegalAccessException{
+		
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
+		
+		((ServerAccessController) accessController).allowAccessTo (playerName);
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.allowAccessTo (playerName);
+		}
 	}
 	
-	/**Stores the given double value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setDouble (String key, double value){
-		setData (key, new Double (value), value+"", true);
+	/**
+	 * Allows all players except one to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @param playerName Name of the not allowed player.
+	 * @throws IllegalAccessException If you use this method on the client side.
+	 */
+	public void allowAccessToAllExcept (String playerName) throws IllegalAccessException{
+		
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
+		
+		((ServerAccessController) accessController).allowAccessToAllExcept (playerName);
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.allowAccessToAllExcept (playerName);
+		}
 	}
 	
-	/**Stores the given float value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setFloat (String key, float value){
-		setData (key, new Float (value), value+"", true);
+	/**
+	 * Forbids all players to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @throws IllegalAccessException If you use this method on the client side.
+	 */
+	public void forbidAccessToAll () throws IllegalAccessException{
+		
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
+		
+		((ServerAccessController) accessController).forbidAccessToAll();
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.forbidAccessToAll();
+		}
 	}
 	
-	/**Stores the given int value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setInt (String key, int value){
-		setData (key, new Integer (value), value+"", true);
+	/**
+	 * Forbids a player to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @param playerName Name of the allowed player.
+	 * @throws IllegalAccessException If you use this method on the client side.
+	 */
+	public void forbidAccessTo (String playerName) throws IllegalAccessException{
+		
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
+		
+		((ServerAccessController) accessController).forbidAccessTo (playerName);
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.forbidAccessTo (playerName);
+		}
 	}
 	
-	/**Stores the given long value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setLong (String key, long value){
-		setData (key, new Long (value), value+"", true);
+	/**
+	 * Forbids all players except one to modify the data inside this DBFolder.<br>
+	 * You can use this method only on the server side.
+	 * @throws IllegalAccessException If you use this method on the client side.
+	 */
+	public void forbidAccessToAllExcept (String playerName) throws IllegalAccessException{
+		
+		if (modID == null) return;
+		if (side == Side.CLIENT) throw new IllegalAccessException ();
+		
+		((ServerAccessController) accessController).forbidAccessToAllExcept (playerName);
+		
+		for (DBFolder subFolder : getSubFolders()){
+			subFolder.forbidAccessToAllExcept (playerName);
+		}
 	}
 	
-	/**Stores the given short value using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * */
-	public void setShort (String key, short value){
-		setData (key, new Short (value), value+"", true);
-	}
+	//---------------------------------
+	// GETTERS & SETTERS
+	//---------------------------------
 	
-	/**Stores the given String object using the given string key.
-	 * @throws IllegalArgumentException if key is null or if it contains ':'
-	 * @throws NullPointerException If value is null. Use <u>removeString (String key)</u> for remove a String.
-	 * */
-	public void setString (String key, String value){
+	/**Stores the given BlockPos object using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException If key contains ':'
+	 * @throws NullPointerException If key or value are null. Use <u>removeBlockPos (String key)</u> for remove a BlockPos.
+	 * @return <b>true</b> if the BlockPos has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setBlockPos (String key, BlockPos value){
 		
 		if (value == null) throw new NullPointerException ("value can't be null");
-		setData (key, value, value, true);
+		return setData (key, value, value.getX()+":"+value.getY()+":"+value.getZ(), true);
+	}
+	
+	/**Stores the given boolean value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the boolean has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setBoolean (String key, boolean value){
+		return setData (key, new Boolean (value), value+"", true);
+	}
+	
+	/**Stores the given byte value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the byte has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setByte (String key, byte value){
+		return setData (key, new Byte (value), value+"", true);
+	}
+	
+	/**Stores the given char value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the char has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setChar (String key, char value){
+		return setData (key, new Character (value), value+"", true);
+	}
+	
+	/**Stores the given DBFolder object using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key or value are null. Use <u>removeDBFolder (String key)</u> for remove a DBFolder.
+	 * @return <b>true</b> if the DBFolder has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setDBFolder (String key, DBFolder value){
+		
+		if (value == null) throw new NullPointerException ("value can't be null");
+		
+		if (accessController.canAccessToData()){
+			
+			value.parentFolder = this;
+			value.setModID (modID);
+			value.name = key;
+			
+			setData (key, value, "", true);
+			value.synchronizeContent ();
+			
+			return true;
+			
+		}else return false;
+	}
+	
+	/**
+	 * <span style="font-size : 2em">DON'T USE THIS METHOD !</span><br>
+	 * it can desynchronize the clients/server or corrupt the save
+	 */
+	public boolean addNewDBFolderFromPacket (String key){
+		return setData (key, new DBFolder (modID, key, this, null), "", false); // for avoid a re-synchronization (chain reaction)
+	}
+	
+	/**Stores the given double value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the double has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setDouble (String key, double value){
+		return setData (key, new Double (value), value+"", true);
+	}
+	
+	/**Stores the given float value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the float has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setFloat (String key, float value){
+		return setData (key, new Float (value), value+"", true);
+	}
+	
+	/**Stores the given int value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the int has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setInt (String key, int value){
+		return setData (key, new Integer (value), value+"", true);
+	}
+	
+	/**Stores the given long value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the long has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setLong (String key, long value){
+		return setData (key, new Long (value), value+"", true);
+	}
+	
+	/**Stores the given short value using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key is null.
+	 * @return <b>true</b> if the short has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setShort (String key, short value){
+		return setData (key, new Short (value), value+"", true);
+	}
+	
+	/**Stores the given String object using the given string key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @throws IllegalArgumentException if key is null or if it contains ':'
+	 * @throws NullPointerException If key or value are null. Use <u>removeString (String key)</u> for remove a String.
+	 * @return <b>true</b> if the String has been set (if you are allowed to modify it), <b>false</b> either.
+	 */
+	public boolean setString (String key, String value){
+		
+		if (value == null) throw new NullPointerException ("value can't be null");
+		return setData (key, value, value, true);
 	}
 	
 	// synchronized for avoid ConcurrentModificationException with dataArray and keysArray
 	/**
-	 * <span style="font-size : 2em">DON'T USE THIS METHOD !</span></br>
+	 * <span style="font-size : 2em">DON'T USE THIS METHOD !</span><br>
 	 * it can desynchronize the clients/server or corrupt the save
 	 */
-	public synchronized void setData (String key, Object value, String valueStr, boolean synchronizeTheOtherSide){
+	public synchronized boolean setData (String key, Object value, String valueStr, boolean synchronizeTheOtherSide){
 		
-		if (key == null) throw new IllegalArgumentException ("key can't be null");
+		if (!accessController.canAccessToData()) return false;
+		if (key == null) throw new NullPointerException ("key can't be null");
 		if (key.contains (":")) throw new IllegalArgumentException ("key can't contain ':'");
 		
 		for (int i=0 ; i<keysArray.size() ; i++){
@@ -407,13 +615,15 @@ public class DBFolder{
 					if (synchronizeTheOtherSide) dataModified ("set", getTypeName (value.getClass()), key, valueStr);
 				}
 				
-				return;
+				return true;
 			}
 		}
 		
 		keysArray.add (key);
 		dataArray.add (value);
 		if (synchronizeTheOtherSide) dataModified ("set", getTypeName (value.getClass()), key, valueStr);
+		
+		return true;
 	}
 	
 	/**Retrieves a BlockPos object using the specified key, or null if no such key was stored.*/
@@ -436,12 +646,15 @@ public class DBFolder{
 		return ((Character) getData (key, Character.class, new Character ((char) 0))).charValue();
 	}
 	
-	/**Retrieves a DBFolder object using the specified key, or creates and stores a new if no such key was stored.*/
+	/**
+	 * Retrieves a DBFolder object using the specified key.<br>
+	 * If no such key was stored, it creates a new DBFolder and stores it, but only if you have the permission (if you are on the server side or if the server allowed you), else it retrieves null.
+	 */
 	public DBFolder getDBFolder (String key){
 		
 		DBFolder folder = (DBFolder) getData (key, DBFolder.class, null);
 		
-		if (folder == null){
+		if (folder == null && accessController.canAccessToData()){
 			
 			folder = new DBFolder (modID, name, this, null);
 			
@@ -496,63 +709,90 @@ public class DBFolder{
 		return defaultValue;
 	}
 	
-	/**Removes a BlockPos object using the specified key.*/
-	public void removeBlockPos (String key){
-		removeData (key, BlockPos.class, true);
+	/**Removes a BlockPos object using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the BlockPos has been successful removed, <b>false</b> either (if the key doesn't math with any BlockPos or if you are not allowed to remove it).*/
+	public boolean removeBlockPos (String key){
+		return removeData (key, BlockPos.class, true);
 	}
 	
-	/**Removes a boolean value using the specified key.*/
-	public void removeBoolean (String key){
-		removeData (key, Boolean.class, true);
+	/**Removes a boolean value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the boolean has been successful removed, <b>false</b> either (if the key doesn't math with any boolean or if you are not allowed to remove it).*/
+	public boolean removeBoolean (String key){
+		return removeData (key, Boolean.class, true);
 	}
 	
-	/**Removes a byte value using the specified key.*/
-	public void removeByte (String key){
-		removeData (key, Byte.class, true);
+	/**Removes a byte value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the byte has been successful removed, <b>false</b> either (if the key doesn't math with any byte or if you are not allowed to remove it).*/
+	public boolean removeByte (String key){
+		return removeData (key, Byte.class, true);
 	}
 	
-	/**Removes a char value using the specified key.*/
-	public void removeChar (String key){
-		removeData (key, Character.class, true);
+	/**Removes a char value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the char has been successful removed, <b>false</b> either (if the key doesn't math with any char or if you are not allowed to remove it).*/
+	public boolean removeChar (String key){
+		return removeData (key, Character.class, true);
 	}
 	
-	/**Removes a double value using the specified key.*/
-	public void removeDouble (String key){
-		removeData (key, Double.class, true);
+	/**Removes a double value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the double has been successful removed, <b>false</b> either (if the key doesn't math with any double or if you are not allowed to remove it).*/
+	public boolean removeDouble (String key){
+		return removeData (key, Double.class, true);
 	}
 	
-	/**Removes a DBFolder object using the specified key.*/
-	public void removeDBFolder (String key){
-		removeData (key, DBFolder.class, true);
+	/**Removes a DBFolder object using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the DBFolder has been successful removed, <b>false</b> either (if the key doesn't math with any DBFolder or if you are not allowed to remove it).*/
+	public boolean removeDBFolder (String key){
+		return removeData (key, DBFolder.class, true);
 	}
 	
-	/**Removes a float value using the specified key.*/
-	public void removeFloat (String key){
-		removeData (key, Float.class, true);
+	/**Removes a float value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the float has been successful removed, <b>false</b> either (if the key doesn't math with any float or if you are not allowed to remove it).*/
+	public boolean removeFloat (String key){
+		return removeData (key, Float.class, true);
 	}
 	
-	/**Removes a int value using the specified key.*/
-	public void removeInt (String key){
-		removeData (key, Integer.class, true);
+	/**Removes a int value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the int has been successful removed, <b>false</b> either (if the key doesn't math with any int or if you are not allowed to remove it).*/
+	public boolean removeInt (String key){
+		return removeData (key, Integer.class, true);
 	}
 	
-	/**Removes a long value using the specified key.*/
-	public void removeLong (String key){
-		removeData (key, Long.class, true);
+	/**Removes a long value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the long has been successful removed, <b>false</b> either (if the key doesn't math with any long or if you are not allowed to remove it).*/
+	public boolean removeLong (String key){
+		return removeData (key, Long.class, true);
 	}
 	
-	/**Removes a short value using the specified key.*/
-	public void removeShort (String key){
-		removeData (key, Short.class, true);
+	/**Removes a short value using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the short has been successful removed, <b>false</b> either (if the key doesn't math with any short or if you are not allowed to remove it).*/
+	public boolean removeShort (String key){
+		return removeData (key, Short.class, true);
 	}
 	
-	/**Removes a String object using the specified key.*/
-	public void removeString (String key){
-		removeData (key, String.class, true);
+	/**Removes a String object using the specified key.<br>
+	 * You can use this method only if you are allowed (if you are on the server side or if the server has allowed you).
+	 * @return <b>true</b> if the String has been successful removed, <b>false</b> either (if the key doesn't math with any String or if you are not allowed to remove it).*/
+	public boolean removeString (String key){
+		return removeData (key, String.class, true);
 	}
 	
-	/** synchronized for avoid ConcurrentModificationException with dataArray and keysArray */
-	public synchronized void removeData (String key, Class<? extends Object> type, boolean synchronizeOtherSide){
+	// synchronized for avoid ConcurrentModificationException with dataArray and keysArray
+	/**<span style="font-size : 2em">DON'T USE THIS METHOD !</span><br>
+	 * it can desynchronize the clients/server or corrupt the save
+	 */
+	public synchronized boolean removeData (String key, Class<? extends Object> type, boolean synchronizeOtherSide){
+		
+		if (!accessController.canAccessToData()) return false;
 		
 		for (int i=0 ; i<keysArray.size() ; i++){
 			
@@ -570,9 +810,11 @@ public class DBFolder{
 				dataArray.remove (i);
 				if (synchronizeOtherSide) dataModified ("remove", getTypeName (type), key, "");
 				
-				return;
+				return true;
 			}
 		}
+		
+		return false;
 	}
 	
 	//---------------------------------

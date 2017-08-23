@@ -5,6 +5,7 @@ import com.trcgames.dbSynchronizer.database.DBFolder;
 import com.trcgames.dbSynchronizer.database.DataSaver;
 import com.trcgames.dbSynchronizer.database.ServerDatabase;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
+import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.ServerAccessController;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -67,16 +68,25 @@ public class PacketClientToServer implements IMessage{
 					
 				case ADD_MOD_ID :
 					
-					DataSaver.getInstance().addAModID (message.args [0]);
-					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ctx.getServerHandler().player, message.args[0]));
+					if (message.args.length != 1) return null;
+					
+					String modID = message.args [0];
+					if (modID.equals ("") || modID.contains (":")) return null;
+					
+					DataSaver.getInstance().addAModID (modID);
+					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ctx.getServerHandler().player, modID));
 					return null;
 					
 				case SET_REMOVE_DATA :
 					
-					PacketCommonHandler.setRemoveData (message.args);
-					ServerDatabase.getInstance (message.args[0]).markDirty ();
+					boolean dataSuccessfullyModified = PacketCommonHandler.setRemoveData (message.args, ctx.getServerHandler().player.getName());
 					
-					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().player, message.args));
+					if (dataSuccessfullyModified){
+						
+						ServerDatabase.getInstance (message.args[0]).markDirty ();
+						DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().player, message.args));
+					}
+					
 					return null;
 					
 				default : return null;
@@ -85,11 +95,22 @@ public class PacketClientToServer implements IMessage{
 		
 		private void initializeClient (EntityPlayerMP sender, String modID, DBFolder folder){
 			
+			String [] hierarchy = folder.getHierarchy ();
+			
+			if (((ServerAccessController) folder.getAccessController()).canPlayerAccessToData (sender.getName())){
+				
+				String [] args = new String [hierarchy.length+2];
+				args [0] = modID;
+				for (int j=0 ; j<hierarchy.length ; j++) args [j+1] = hierarchy [j];
+				args [args.length-1] = "allow";
+				
+				DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), sender);
+			}
+			
 			String [] keys = folder.getKeys ();
 			
 			for (int i=0 ; i<keys.length ; i++){
 				
-				String [] hierarchy = folder.getHierarchy ();
 				String key = keys [i];
 				String dataType = folder.getDataType (i);
 				String value = null;

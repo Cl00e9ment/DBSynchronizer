@@ -41,6 +41,15 @@ public class ClientDatabase implements Database{
 		return instances.get (instances.size()-1);
 	}
 	
+	public static boolean doesInstanceStored (String modID){
+		
+		for (ClientDatabase instance : instances){
+			if (instance.modID.equals (modID)) return true;
+		}
+		
+		return false;
+	}
+	
 	//---------------------------------
 	// OBJECT
 	//---------------------------------

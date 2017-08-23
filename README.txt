@@ -1,6 +1,19 @@
-Release 1.5.0.1
+Release 1.5.1 (security update)
 
-changelog :
+    changelog :
+    
+    - Now the client can't modify data without the server permission that can use allowAccessToAll(), allowAccessTo(), allowAccessToAllExcept(), forbidAccessToAll(), forbidAccessTo() and forbidAccessToAllExcept().
+    - Now the server verify all packets content received from clients for avoid that a malicious client sends a bad packet that can crash the server.
 
-- bug fix : Fixed the bug that throws a NullPointerException when you try to get the database instance from a client in multiplayer.
-- mod logo changed
+Release 1.5.0.1 (bug fix)
+
+    changelog :
+    
+    - bug fix : Fixed the bug that throws a NullPointerException when you try to get the database instance from a client in multiplayer.
+    - mod logo changed
+
+Release 1.5.0 (first release)
+
+    changelog :
+    
+    - First release for Minecraft 1.12

@@ -1,8 +1,12 @@
 package com.trcgames.dbSynchronizer.packets;
 
 import com.trcgames.dbSynchronizer.DBSynchronizer;
+import com.trcgames.dbSynchronizer.DatabaseGetter;
 import com.trcgames.dbSynchronizer.database.ClientDatabase;
+import com.trcgames.dbSynchronizer.database.DBFolder;
+import com.trcgames.dbSynchronizer.database.Database;
 import com.trcgames.dbSynchronizer.packets.PacketClientToServer.CtSPacketType;
+import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.ClientAccessController;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
@@ -16,7 +20,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class PacketServerToClient implements IMessage{
 	
-	public enum StCPacketType {ADD_MOD_IDS, PLAYER_LOGGED_IN, SET_REMOVE_DATA};
+	public enum StCPacketType {ADD_MOD_IDS, PLAYER_LOGGED_IN, SET_REMOVE_DATA, SET_ACCESS_PERMISSION};
 	
 	private StCPacketType type;
 	private String clientToIgnor = "";
@@ -80,13 +84,15 @@ public class PacketServerToClient implements IMessage{
 					if (Minecraft.getMinecraft().player != null){
 						
 						if (Minecraft.getMinecraft().player.getName().equals (message.args [0])){
+							
+							DBSynchronizer.worldLoaded = true;
 							DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 						}
 						
 						return null;
 					}
 					
-					//When Client thread will receives the task, Minecraft.getMinecraft.player will be initialized.
+					//When Client thread will receive the task, Minecraft.getMinecraft.player will be initialized.
 					//But now, it's not.
 					Minecraft.getMinecraft().addScheduledTask (new Runnable(){
 						
@@ -102,8 +108,6 @@ public class PacketServerToClient implements IMessage{
 						public void run(){
 							
 							if (Minecraft.getMinecraft().player.getName().equals (playerName)){
-								
-								DBSynchronizer.worldLoaded = true;
 								DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 							}
 						}
@@ -113,7 +117,28 @@ public class PacketServerToClient implements IMessage{
 					
 				case SET_REMOVE_DATA :
 					
-					PacketCommonHandler.setRemoveData (message.args);
+					PacketCommonHandler.setRemoveData (message.args, "server");
+					return null;
+					
+				case SET_ACCESS_PERMISSION :
+					
+					String [] args = message.args;
+					Database database = DatabaseGetter.getInstance (args [0]);
+					DBFolder folder;
+					
+					if (args [1].equals ("persistent folder")) folder = database.getPersistentFolder();
+					else if (args [1].equals ("non-persistent folder")) folder = database.getNonPersistentFolder();
+					else return null;
+					
+					for (int i=2 ; i<args.length-1 ; i++){
+						folder = folder.getDBFolder (args [i]);
+					}
+					
+					ClientAccessController accessController = (ClientAccessController) folder.getAccessController();
+					
+					if (args [args.length-1].equals ("allow")) accessController.setAccessAuthorization (true);
+					else if (args [args.length-1].equals ("forbid")) accessController.setAccessAuthorization (false);
+					
 					return null;
 					
 				default : return null;

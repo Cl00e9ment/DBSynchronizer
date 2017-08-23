@@ -15,8 +15,8 @@ public class DatabaseGetter{
 	 * Each world possesses it specific database.<br>
 	 * @param modID : The ID of your mod (it can't be null or an empty String).
 	 * @return A Database object (can be a SeverDatabase or a ClientDatabase).
-	 * @throws IllegalArgumentException If your mod ID is null, an empty String or if it contains ":".
-	 * @throws NullPointerException if no world is loaded.
+	 * @throws IllegalArgumentException If your mod ID is an empty String or if it contains ":".
+	 * @throws NullPointerException If your mod ID is null or if no world is loaded.
 	 */
 	public static Database getInstance (String modID){
 		
@@ -25,7 +25,7 @@ public class DatabaseGetter{
 		}
 		
 		if (modID == null){
-			throw new IllegalArgumentException ("Your mod ID can't be null.");
+			throw new NullPointerException ("Your mod ID can't be null.");
 		}
 		
 		if (modID.equals ("")){
