@@ -443,7 +443,7 @@ public class DBFolder{
 		
 		if (folder == null){
 			
-			folder = new DBFolder (modID, name, this, null);
+			folder = new DBFolder (modID, key, this, null);
 			
 			keysArray.add (key);
 			dataArray.add (folder);
