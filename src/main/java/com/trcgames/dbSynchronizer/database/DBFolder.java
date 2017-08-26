@@ -40,6 +40,7 @@ public class DBFolder{
 		if (tag != null) initFromNBT (tag);
 	}
 	
+	/** This method doesn't just set the modID. It does a part of the DBFolder integration to the database. */
 	private void setModID (String modID){
 		
 		this.modID = modID;
@@ -51,12 +52,17 @@ public class DBFolder{
 		
 		if (modID == null) accessController = null;
 		else if (side == Side.SERVER) accessController = new ServerAccessController (this);
-		else if (side == Side.CLIENT) accessController = new ClientAccessController (this);
+		else if (side == Side.CLIENT) accessController = new ClientAccessController ();
 	}
 	
 	/** @return The ID of the mod that possesses the database instance where this DBFolder is contained. Or null if this DBFolder aren't contained in a database instance. */
 	public String getModID (){
 		return modID;
+	}
+	
+	/** @return The parent folder.*/
+	public DBFolder getParentFolder (){
+		return parentFolder;
 	}
 	
 	/** Retrieves an ArrayList that contains all DBFolder directly contained in this DBFolder.*/
@@ -88,6 +94,8 @@ public class DBFolder{
 	}
 	
 	private void synchronizeContent (){
+		
+		if (modID == null) return;
 		
 		for (int i=0 ; i<keysArray.size() ; i++){
 			
@@ -143,7 +151,8 @@ public class DBFolder{
 		}
 	}
 	
-	// TODO javadoc
+	/** Retrieves an array that contain all parent folders name.<br>
+	 * 	example : {"persistent folder", "sub-folder", "sub-sub-folder", "this folder"}*/
 	public String [] getHierarchy (){
 		
 		String [] hierarchy = getHierarchy (null);
@@ -199,35 +208,38 @@ public class DBFolder{
 		
 		for (Object data : dataArray){
 			
-			if (data.getClass() == BlockPos.class){
+			if (data instanceof BlockPos){
 				BlockPos pos = ((BlockPos) data);
 				folder.dataArray.add (new BlockPos (pos.getX(), pos.getY(), pos.getZ()));
 				
-			}else if (data.getClass() == Boolean.class){
+			}else if (data instanceof Boolean){
 				folder.dataArray.add (((Boolean) data).booleanValue ());
 				
-			}else if (data.getClass() == Byte.class){
+			}else if (data instanceof Byte){
 				folder.dataArray.add (((Byte) data).byteValue ());
 				
-			}else if (data.getClass() == Character.class){
+			}else if (data instanceof Character){
 				folder.dataArray.add (((Character) data).charValue ());
 				
-			}else if (data.getClass() == Double.class){
+			}else if (data instanceof DBFolder){
+				folder.dataArray.add (((DBFolder) data).copy ());
+				
+			}else if (data instanceof Double){
 				folder.dataArray.add (((Double) data).doubleValue ());
 				
-			}else if (data.getClass() == Float.class){
+			}else if (data instanceof Float){
 				folder.dataArray.add (((Float) data).floatValue ());
 				
-			}else if (data.getClass() == Integer.class){
+			}else if (data instanceof Integer){
 				folder.dataArray.add (((Integer) data).intValue ());
 				
-			}else if (data.getClass() == Long.class){
+			}else if (data instanceof Long){
 				folder.dataArray.add (((Long) data).longValue ());
 				
-			}else if (data.getClass() == Short.class){
+			}else if (data instanceof Short){
 				folder.dataArray.add (((Short) data).shortValue ());
 				
-			}else if (data.getClass() == String.class){
+			}else if (data instanceof String){
 				folder.dataArray.add ((String) data);
 			}
 		}
@@ -273,54 +285,54 @@ public class DBFolder{
 				String type = "unknow";
 				String value = "unknow";
 				
-				if (data.getClass() == BlockPos.class){
+				if (data instanceof BlockPos){
 					
 					BlockPos pos = (BlockPos) dataArray.get (i);
 					
 					type = "BlockPos";
 					value = "x=" + pos.getX() + " y=" + pos.getY() + " z=" + pos.getZ();
 					
-				}else if (data.getClass() == Boolean.class){
+				}else if (data instanceof Boolean){
 					
 					type = "boolean";
 					value = ((Boolean) data).booleanValue () +"";
 					
-				}else if (data.getClass() == Byte.class){
+				}else if (data instanceof Byte){
 					
 					type = "byte";
 					value = ((Byte) data).byteValue () +"";
 					
-				}else if (data.getClass() == Character.class){
+				}else if (data instanceof Character){
 					
 					type = "char";
 					value = ((Character) data).charValue () +"";
 					
-				}else if (data.getClass() == Double.class){
+				}else if (data instanceof Double){
 					
 					type = "double";
 					value = ((Double) data).doubleValue () +"";
 					
-				}else if (data.getClass() == Float.class){
+				}else if (data instanceof Float){
 					
 					type = "float";
 					value = ((Float) data).floatValue () +"";
 					
-				}else if (data.getClass() == Integer.class){
+				}else if (data instanceof Integer){
 					
 					type = "int";
 					value = ((Integer) data).intValue () +"";
 					
-				}else if (data.getClass() == Long.class){
+				}else if (data instanceof Long){
 					
 					type = "long";
 					value = ((Long) data).longValue () +"";
 					
-				}else if (data.getClass() == Short.class){
+				}else if (data instanceof Short){
 					
 					type = "short";
 					value = ((Short) data).shortValue () +"";
 					
-				}else if (data.getClass() == String.class){
+				}else if (data instanceof String){
 					
 					type = "String";
 					value = (String) data;
@@ -511,14 +523,16 @@ public class DBFolder{
 		
 		if (value == null) throw new NullPointerException ("value can't be null");
 		
-		if (accessController.canAccessToData()){
+		if (modID == null || accessController.canAccessToData()){
 			
 			value.parentFolder = this;
 			value.setModID (modID);
 			value.name = key;
 			
 			setData (key, value, "", true);
+			
 			value.synchronizeContent ();
+			value.accessController.dbFolderAddedToDataBaseByUser();
 			
 			return true;
 			
@@ -530,7 +544,12 @@ public class DBFolder{
 	 * it can desynchronize the clients/server or corrupt the save
 	 */
 	public boolean addNewDBFolderFromPacket (String key){
-		return setData (key, new DBFolder (modID, key, this, null), "", false); // for avoid a re-synchronization (chain reaction)
+		
+		DBFolder folder = new DBFolder (modID, key, this, null);
+		boolean success = setData (key, folder, "", false); // "false" for avoid a re-synchronization (chain reaction)
+		if (side == Side.SERVER) folder.accessController.dbFolderAddedToDataBaseByUser();
+		
+		return success;
 	}
 	
 	/**Stores the given double value using the given string key.<br>
@@ -602,7 +621,7 @@ public class DBFolder{
 	 */
 	public synchronized boolean setData (String key, Object value, String valueStr, boolean synchronizeTheOtherSide){
 		
-		if (!accessController.canAccessToData()) return false;
+		if (!(modID == null || accessController.canAccessToData())) return false;
 		if (key == null) throw new NullPointerException ("key can't be null");
 		if (key.contains (":")) throw new IllegalArgumentException ("key can't contain ':'");
 		
@@ -656,11 +675,13 @@ public class DBFolder{
 		
 		if (folder == null && accessController.canAccessToData()){
 			
-			folder = new DBFolder (modID, name, this, null);
+			folder = new DBFolder (modID, key, this, null);
 			
 			keysArray.add (key);
 			dataArray.add (folder);
+			
 			dataModified ("set", "DBFolder", key, "");
+			folder.accessController.dbFolderAddedToDataBaseByUser();
 		}
 		
 		return folder;

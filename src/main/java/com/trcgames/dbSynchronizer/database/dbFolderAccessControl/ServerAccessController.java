@@ -15,10 +15,41 @@ public class ServerAccessController extends AccessController{
 	
 	private enum AccessByDefault {ALLOW, FORBID}
 	private AccessByDefault accessByDefault = AccessByDefault.FORBID;
+	private DBFolder folder;
 	private ArrayList<String> accessExceptions = new ArrayList<String>();
 	
 	public ServerAccessController (DBFolder folder){
-		super (folder);
+		this.folder = folder;
+	}
+	
+	@Override
+	public void dbFolderAddedToDataBaseByUser (){
+		
+		ServerAccessController parentAccessController = (ServerAccessController) folder.getParentFolder().getAccessController();
+		
+		accessByDefault = parentAccessController.accessByDefault;
+		
+		for (String accessException : parentAccessController.accessExceptions){
+			accessExceptions.add (accessException);
+		}
+		
+		PacketServerToClient packet = new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, getArgsForPacketSending (true));
+		
+		if (accessByDefault == AccessByDefault.ALLOW){
+			
+			for (EntityPlayerMP player : getAllPlayers()){
+				
+				if (!accessExceptions.contains (player.getName())){
+					DBSynchronizer.network.sendTo (packet, player);
+				}
+			}
+			
+		}else if (accessByDefault == AccessByDefault.FORBID){
+			
+			for (String accessException : accessExceptions){
+				DBSynchronizer.network.sendTo (packet, getAPlayer (accessException));
+			}
+		}
 	}
 	
 	@Override

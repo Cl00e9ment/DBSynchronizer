@@ -1,24 +1,16 @@
 package com.trcgames.dbSynchronizer.database.dbFolderAccessControl;
 
-import com.trcgames.dbSynchronizer.database.DBFolder;
-
 public class ClientAccessController extends AccessController {
 
 	private boolean canAccessToData, accessAllowedTentatively;
 	
-	public ClientAccessController (DBFolder folder){
-		super (folder);
+	@Override
+	public void dbFolderAddedToDataBaseByUser (){
+		canAccessToData = true;
 	}
 	
 	public void setAccessAuthorization (boolean canAccessToData){
-		
 		this.canAccessToData = canAccessToData;
-		
-		// TODO remove
-		/*
-		for (DBFolder subFolder : folder.getSubFolders()){
-			((ClientAccessController) subFolder.getAccessController()).setAccessAuthorization (canAccessToData);
-		}*/
 	}
 	
 	@Override

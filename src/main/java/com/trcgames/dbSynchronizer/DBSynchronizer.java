@@ -30,7 +30,7 @@ public class DBSynchronizer{
 	@EventHandler
 	public void preInit (FMLPreInitializationEvent event){
 		
-		MinecraftForge.EVENT_BUS.register (new EventListener ());
+		MinecraftForge.EVENT_BUS.register (new EventsListener ());
 		
 		network = NetworkRegistry.INSTANCE.newSimpleChannel (DBSynchronizer.MOD_ID);
 		network.registerMessage (PacketServerToClient.Handler.class, PacketServerToClient.class, 0, Side.CLIENT);
