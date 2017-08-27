@@ -144,10 +144,10 @@ public class DBFolder{
 				((ServerDatabase) DatabaseGetter.getInstance (modID)).markDirty ();
 			}
 			
-			DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, args));
+			DBSynchronizer.instance.getNetwork().sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, args));
 			
 		}else if (side == Side.CLIENT){
-			DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.SET_REMOVE_DATA, args));
+			DBSynchronizer.instance.getNetwork().sendToServer (new PacketClientToServer (CtSPacketType.SET_REMOVE_DATA, args));
 		}
 	}
 	

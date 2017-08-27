@@ -4,8 +4,13 @@ Release 1.5.1 (security update)
     
     - Now the client can't modify data without the server permission that can use allowAccessToAll(), allowAccessTo(), allowAccessToAllExcept(), forbidAccessToAll(), forbidAccessTo() and forbidAccessToAllExcept().
     - Now the server verify all packets content received from clients for avoid that a malicious client sends a bad packet that can crash the server.
+    - Now the clients can't add database instances but the server must use DatabaseGetter.registerInstance().
     - Now the method copy() in DBFolder copies also sub-folders.
+    
+    tech changelog :
+    
     - All (x.class == X.getClass()) has been replaced by (x instanceof X).
+    - Better respect of the OOP rules in DBSynchronizer.class
 
 Release 1.5.0.2 (bug fix)
 

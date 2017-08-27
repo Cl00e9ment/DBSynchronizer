@@ -85,8 +85,8 @@ public class PacketServerToClient implements IMessage{
 						
 						if (Minecraft.getMinecraft().player.getName().equals (message.args [0])){
 							
-							DBSynchronizer.worldLoaded = true;
-							DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
+							DBSynchronizer.instance.setWorldLoaded (true);
+							DBSynchronizer.instance.getNetwork().sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 						}
 						
 						return null;
@@ -108,7 +108,7 @@ public class PacketServerToClient implements IMessage{
 						public void run(){
 							
 							if (Minecraft.getMinecraft().player.getName().equals (playerName)){
-								DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
+								DBSynchronizer.instance.getNetwork().sendToServer (new PacketClientToServer (CtSPacketType.INITIALIZATION_REQUEST));
 							}
 						}
 					}.setPlayerName (message.args [0]));

@@ -16,14 +16,14 @@ public class EventsListener{
 	/** Triggered on <u>Server thread</u>. */
 	@SubscribeEvent
 	public void onClientJoin (PlayerLoggedInEvent event){
-		DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.PLAYER_LOGGED_IN, event.player.getName()));
+		DBSynchronizer.instance.getNetwork().sendToAll (new PacketServerToClient (StCPacketType.PLAYER_LOGGED_IN, event.player.getName()));
 	}
 
 	/** Triggered on thread <u>Netty Client IO</u>. */
 	@SubscribeEvent (priority = EventPriority.LOW)
 	public void onClientLeave (ClientDisconnectionFromServerEvent event){
 		
-		DBSynchronizer.worldLoaded = false;
+		DBSynchronizer.instance.setWorldLoaded (false);
 		ClientDatabase.onClientLeave ();
 	}
 	

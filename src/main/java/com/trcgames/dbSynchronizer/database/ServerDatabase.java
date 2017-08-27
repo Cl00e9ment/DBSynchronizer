@@ -3,8 +3,6 @@ package com.trcgames.dbSynchronizer.database;
 import java.util.ArrayList;
 
 import com.trcgames.dbSynchronizer.DBSynchronizer;
-import com.trcgames.dbSynchronizer.packets.PacketServerToClient;
-import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.storage.MapStorage;
@@ -16,8 +14,20 @@ public class ServerDatabase extends WorldSavedData implements Database{
 	//---------------------------------
 	// STATIC
 	//---------------------------------
-	
+
+	private static ArrayList<String> modIDs = new ArrayList<String>();
 	private static ArrayList<ServerDatabase> instances = new ArrayList<ServerDatabase>();
+	
+	public static void addAModID (String modID){
+		
+		if (!modIDs.contains (modID)){
+			modIDs.add (modID);
+		}
+	}
+	
+	public static String [] getModIDs (){
+		return modIDs.toArray (new String [modIDs.size()]);
+	}
 	
 	private static ServerDatabase initInstance (String modID){
 		
@@ -27,8 +37,6 @@ public class ServerDatabase extends WorldSavedData implements Database{
 		ServerDatabase instance = (ServerDatabase) storage.getOrLoadData (ServerDatabase.class, key);
 		
 		if (instance == null){
-			
-			DataSaver.getInstance().addAModID (modID);
 			
 			instance = new ServerDatabase (key);
 			storage.setData (key, instance);
@@ -43,7 +51,7 @@ public class ServerDatabase extends WorldSavedData implements Database{
 	
 	public static void onServerStarting (){
 		
-		for (String modID : DataSaver.getInstance().getModIDs()){
+		for (String modID : modIDs){
 			initInstance (modID);
 		}
 	}
@@ -59,8 +67,7 @@ public class ServerDatabase extends WorldSavedData implements Database{
 			if (instance.modID.equals (modID)) return instance;
 		}
 		
-		DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, modID));
-		return initInstance (modID);
+		return null;
 	}
 	
 	public static boolean doesInstanceStored (String modID){

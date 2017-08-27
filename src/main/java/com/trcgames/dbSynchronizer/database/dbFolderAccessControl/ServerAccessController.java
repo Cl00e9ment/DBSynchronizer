@@ -40,14 +40,14 @@ public class ServerAccessController extends AccessController{
 			for (EntityPlayerMP player : getAllPlayers()){
 				
 				if (!accessExceptions.contains (player.getName())){
-					DBSynchronizer.network.sendTo (packet, player);
+					DBSynchronizer.instance.getNetwork().sendTo (packet, player);
 				}
 			}
 			
 		}else if (accessByDefault == AccessByDefault.FORBID){
 			
 			for (String accessException : accessExceptions){
-				DBSynchronizer.network.sendTo (packet, getAPlayer (accessException));
+				DBSynchronizer.instance.getNetwork().sendTo (packet, getAPlayer (accessException));
 			}
 		}
 	}
@@ -99,7 +99,7 @@ public class ServerAccessController extends AccessController{
 			case ALLOW :
 				
 				for (String accessException : accessExceptions){
-					DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
+					DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
 				}
 				
 				break;
@@ -108,7 +108,7 @@ public class ServerAccessController extends AccessController{
 				
 				for (EntityPlayerMP player : getAllPlayers()){
 					if (!accessExceptions.contains (player.getName())){
-						DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
+						DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
 					}
 				}
 				
@@ -147,7 +147,7 @@ public class ServerAccessController extends AccessController{
 			}
 		
 		if (needToSendAPacket){
-			DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, getArgsForPacketSending (true)), getAPlayer (playerName));
+			DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, getArgsForPacketSending (true)), getAPlayer (playerName));
 		}
 	}
 	
@@ -165,7 +165,7 @@ public class ServerAccessController extends AccessController{
 					if (accessException.equals (playerName)){
 						needToSendAPacket = false;
 					}else{
-						DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
+						DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
 					}
 				}
 				
@@ -179,7 +179,7 @@ public class ServerAccessController extends AccessController{
 						if (playerName.equals (player.getName())){
 							needToSendAPacket = false;
 						}else{
-							DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
+							DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
 						}
 					}
 				}
@@ -190,7 +190,7 @@ public class ServerAccessController extends AccessController{
 		if (needToSendAPacket){
 			
 			args [args.length-1] = "forbid";
-			DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (playerName));
+			DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (playerName));
 		}
 		
 		accessByDefault = AccessByDefault.ALLOW;
@@ -208,7 +208,7 @@ public class ServerAccessController extends AccessController{
 				
 				for (EntityPlayerMP player : getAllPlayers()){
 					if (!accessExceptions.contains (player.getName())){
-						DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
+						DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
 					}
 				}
 				
@@ -217,7 +217,7 @@ public class ServerAccessController extends AccessController{
 			case FORBID :
 				
 				for (String accessException : accessExceptions){
-					DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
+					DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
 				}
 				
 				break;
@@ -255,7 +255,7 @@ public class ServerAccessController extends AccessController{
 			}
 		
 		if (needToSendAPacket){
-			DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, getArgsForPacketSending (false)), getAPlayer (playerName));
+			DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, getArgsForPacketSending (false)), getAPlayer (playerName));
 		}
 	}
 	
@@ -274,7 +274,7 @@ public class ServerAccessController extends AccessController{
 						if (playerName.equals (player.getName())){
 							needToSendAPacket = false;
 						}else{
-							DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
+							DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), player);
 						}
 					}
 				}
@@ -288,7 +288,7 @@ public class ServerAccessController extends AccessController{
 					if (accessException.equals (playerName)){
 						needToSendAPacket = false;
 					}else{
-						DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
+						DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (accessException));
 					}
 				}
 				
@@ -298,7 +298,7 @@ public class ServerAccessController extends AccessController{
 		if (needToSendAPacket){
 			
 			args [args.length-1] = "allow";
-			DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (playerName));
+			DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), getAPlayer (playerName));
 		}
 		
 		accessByDefault = AccessByDefault.FORBID;

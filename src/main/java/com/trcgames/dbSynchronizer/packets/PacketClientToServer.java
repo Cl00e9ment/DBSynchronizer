@@ -2,7 +2,6 @@ package com.trcgames.dbSynchronizer.packets;
 
 import com.trcgames.dbSynchronizer.DBSynchronizer;
 import com.trcgames.dbSynchronizer.database.DBFolder;
-import com.trcgames.dbSynchronizer.database.DataSaver;
 import com.trcgames.dbSynchronizer.database.ServerDatabase;
 import com.trcgames.dbSynchronizer.packets.PacketServerToClient.StCPacketType;
 import com.trcgames.dbSynchronizer.database.dbFolderAccessControl.ServerAccessController;
@@ -17,7 +16,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class PacketClientToServer implements IMessage{
 
-	public enum CtSPacketType {INITIALIZATION_REQUEST, ADD_MOD_ID, SET_REMOVE_DATA};
+	public enum CtSPacketType {INITIALIZATION_REQUEST, SET_REMOVE_DATA};
 	
 	private CtSPacketType type;
 	private String [] args;
@@ -56,25 +55,14 @@ public class PacketClientToServer implements IMessage{
 				case INITIALIZATION_REQUEST :
 					
 					EntityPlayerMP sender = ctx.getServerHandler().player;
-					DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, DataSaver.getInstance().getModIDs()), sender);
+					DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ServerDatabase.getModIDs()), sender);
 					
-					for (String modID : DataSaver.getInstance().getModIDs()){
+					for (String modID : ServerDatabase.getModIDs()){
 						
 						initializeClient (sender, modID, ServerDatabase.getInstance (modID).getPersistentFolder());
 						initializeClient (sender, modID, ServerDatabase.getInstance (modID).getNonPersistentFolder());
 					}
 					
-					return null;
-					
-				case ADD_MOD_ID :
-					
-					if (message.args.length != 1) return null;
-					
-					String modID = message.args [0];
-					if (modID.equals ("") || modID.contains (":")) return null;
-					
-					DataSaver.getInstance().addAModID (modID);
-					DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.ADD_MOD_IDS, ctx.getServerHandler().player, modID));
 					return null;
 					
 				case SET_REMOVE_DATA :
@@ -84,7 +72,7 @@ public class PacketClientToServer implements IMessage{
 					if (dataSuccessfullyModified){
 						
 						ServerDatabase.getInstance (message.args[0]).markDirty ();
-						DBSynchronizer.network.sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().player, message.args));
+						DBSynchronizer.instance.getNetwork().sendToAll (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, ctx.getServerHandler().player, message.args));
 					}
 					
 					return null;
@@ -104,7 +92,7 @@ public class PacketClientToServer implements IMessage{
 				for (int j=0 ; j<hierarchy.length ; j++) args [j+1] = hierarchy [j];
 				args [args.length-1] = "allow";
 				
-				DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), sender);
+				DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_ACCESS_PERMISSION, args), sender);
 			}
 			
 			String [] keys = folder.getKeys ();
@@ -140,7 +128,7 @@ public class PacketClientToServer implements IMessage{
 				args [args.length-2] = key;
 				args [args.length-1] = value;
 				
-				DBSynchronizer.network.sendTo (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, args), sender);
+				DBSynchronizer.instance.getNetwork().sendTo (new PacketServerToClient (StCPacketType.SET_REMOVE_DATA, args), sender);
 				
 				if (dataType.equals ("DBFolder")) initializeClient (sender, modID, folder.getDBFolder(key));
 			}

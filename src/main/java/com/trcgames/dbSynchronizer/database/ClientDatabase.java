@@ -2,10 +2,6 @@ package com.trcgames.dbSynchronizer.database;
 
 import java.util.ArrayList;
 
-import com.trcgames.dbSynchronizer.DBSynchronizer;
-import com.trcgames.dbSynchronizer.packets.PacketClientToServer;
-import com.trcgames.dbSynchronizer.packets.PacketClientToServer.CtSPacketType;
-
 public class ClientDatabase implements Database{
 	
 	//---------------------------------
@@ -35,10 +31,7 @@ public class ClientDatabase implements Database{
 			if (instance.modID.equals (modID)) return instance;
 		}
 		
-		addInstance (modID);
-		DBSynchronizer.network.sendToServer (new PacketClientToServer (CtSPacketType.ADD_MOD_ID, modID));
-		
-		return instances.get (instances.size()-1);
+		return null;
 	}
 	
 	public static boolean doesInstanceStored (String modID){
